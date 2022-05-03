@@ -1,0 +1,388 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class BossGuyScript : MonoBehaviour
+{
+    private bool CanMove;
+    private float Speed;
+    private float Hp;
+    private bool canTakeMeleeDamage;
+    private float meleeDamageCD;
+    private int State; //1 is idle,  2 is Moving,  3 is circle attack,  
+    public bool paused;
+    private Animator _anim;
+    public GameObject loc1;
+    public GameObject loc2;
+    public GameObject loc3;
+    public GameObject loc4;
+    public GameObject loc5;
+    public GameObject loc6;
+    public GameObject loc7;
+    private float attacking;
+    private float startAttacking;
+    private bool spawnBullets;
+    public float bullets;
+    public GameObject bullet;
+    private float bulletSpeed;
+    private float bValueX;
+    public GameObject BulletSpawnLoc;
+    private bool bulletsSet;
+    public GameObject HpFrame;
+    public GameObject HpBar;
+    private float prevState;
+    private int StateNumb;
+    private float dmgRed;
+    private bool startface;
+    public GameObject BossMusic;
+    public GameObject HappyMusic;
+
+    private float redColor;
+    private float currentColor;
+
+    private float locPointNum;
+    private float stateChangeCD;
+    private bool StateChanged;
+    private bool doneMoving;
+    private int pattern;
+    private bool canMoveOn;
+    public GameObject deadBoss;
+
+    void Start ()
+    {
+        startface = true;
+        canMoveOn = true;
+        Hp = 100;
+        bullets = 0;
+        bulletsSet = false;
+        bulletSpeed = 5f;
+        spawnBullets = false;
+        attacking = 0f;
+        doneMoving = false;
+        locPointNum = 1f;
+        paused = true;
+        CanMove = true;
+        State = 1;
+        Speed = 5f;
+        StateChanged = true;
+        bValueX = 1f;
+        StateNumb = State;
+        dmgRed = 0.25f;
+        redColor = 76;
+    }
+    void Awake()
+    {
+        _anim = GetComponent<Animator>();
+    }
+
+    void Update ()
+    {
+        
+        if (redColor < 1)
+        {
+            Color tmp = GetComponent<SpriteRenderer>().color;
+            tmp.g = redColor;
+            tmp.b = redColor;
+            GetComponent<SpriteRenderer>().color = tmp;
+            redColor += Time.deltaTime * 2 ;
+        }
+        if (redColor > 1) { redColor = 1; }
+        
+        if (paused == false)
+        {
+            if (startface == true)
+            {
+                startface = false;
+            }
+            if (Hp <= 0)
+            {
+                GameObject something = (GameObject)Instantiate(deadBoss, transform.position, transform.rotation);
+                GameObject somethingElse = (GameObject)Instantiate(HappyMusic, transform.position, transform.rotation);
+                BossMusic.gameObject.SetActive(false);
+                Destroy(gameObject);
+            }
+            HpBar.transform.localScale = new Vector3(Hp / 100,1,1);
+            if (stateChangeCD > 0) { stateChangeCD -= Time.deltaTime; }
+
+            // Managing melee damage and stuff
+            if (meleeDamageCD > 0)
+            {
+                meleeDamageCD -= Time.deltaTime;
+                canTakeMeleeDamage = false;
+            }
+            if (meleeDamageCD <= 0)
+            {
+                canTakeMeleeDamage = true;
+            }
+            if (State == 1)  // IDLE STATE
+            {
+                if (stateChangeCD <= 0)
+                {
+                    do { StateNumb = Random.Range(2, 5); }
+                    while (StateNumb == prevState);
+                    State = StateNumb;
+                    prevState = State;
+                    Debug.Log(State);
+                    StateChanged = true;
+                }
+            }
+            // shoot!! PEW PEW PEW 
+            if (spawnBullets == true)
+            {
+                if (bullets > 0)
+                {
+                    Shoot();
+                }
+                if (bullets <= 0)
+                {
+                    spawnBullets = false;
+                }
+            }
+
+            #region STATE 2 MOVING
+
+            if (State == 2)  // MOVING STATE
+            {
+                if (StateChanged == true) // this happens at the start of stage 2 every time state is changed
+                {
+                    bullets = 300f;
+                    pattern = Random.Range(1, 9);
+                    doneMoving = false;
+                    StateChanged = false;
+                    locPointNum = 1f;
+                }
+                if (locPointNum == 1f) // Move Towards Point Number 1
+                {
+                    var heading1 = loc1.transform.position - transform.position;
+                    var distance1 = heading1.magnitude;
+                    var direction1 = heading1 / distance1;
+                    float step = Speed * Time.deltaTime;
+                    transform.position = Vector3.MoveTowards(transform.position, loc1.transform.position, step);
+                    if (transform.position == loc1.transform.position) { locPointNum = 2f; }
+                }
+                if (locPointNum == 2f) // Move Towards Point Number 2
+                {
+                    var heading2 = loc2.transform.position - transform.position;
+                    var distance2 = heading2.magnitude;
+                    var direction2 = heading2 / distance2;
+                    float step = Speed * Time.deltaTime;
+                    transform.position = Vector3.MoveTowards(transform.position, loc2.transform.position, step);
+                    if (transform.position == loc2.transform.position) { locPointNum = 3f; }
+                }
+                if (locPointNum == 3f) // Move Towards Point Number 3
+                {
+                    var heading3 = loc3.transform.position - transform.position;
+                    var distance3 = heading3.magnitude;
+                    var direction3 = heading3 / distance3;
+                    float step = Speed * Time.deltaTime;
+                    transform.position = Vector3.MoveTowards(transform.position, loc3.transform.position, step);
+                    if (transform.position == loc3.transform.position) { locPointNum = 4f; }
+                }
+                if (locPointNum == 4f) // Move Towards Point Number 4
+                {
+                    var heading4 = loc4.transform.position - transform.position;
+                    var distance4 = heading4.magnitude;
+                    var direction4 = heading4 / distance4;
+                    float step = Speed * Time.deltaTime;
+                    transform.position = Vector3.MoveTowards(transform.position, loc4.transform.position, step);
+                    if (transform.position == loc4.transform.position) { locPointNum = 5f; }
+                    spawnBullets = true;
+                }
+                if (locPointNum == 5f) // Move Towards Point Number 5
+                {
+                    var heading5 = loc5.transform.position - transform.position;
+                    var distance5 = heading5.magnitude;
+                    var direction5 = heading5 / distance5;
+                    float step = Speed * Time.deltaTime;
+                    transform.position = Vector3.MoveTowards(transform.position, loc5.transform.position, step);
+                    if (transform.position == loc5.transform.position) { locPointNum = 6f; }
+                }
+                if (locPointNum == 6f) // Move Towards Point Number 6
+                {
+                    var heading6 = loc6.transform.position - transform.position;
+                    var distance6 = heading6.magnitude;
+                    var direction6 = heading6 / distance6;
+                    float step = Speed * Time.deltaTime;
+                    transform.position = Vector3.MoveTowards(transform.position, loc6.transform.position, step);
+                    if (transform.position == loc6.transform.position) { locPointNum = 7f; }
+                }
+                if (locPointNum == 7f) // Move Back to Location Number 7
+                {
+                    var heading7 = loc7.transform.position - transform.position;
+                    var distance7 = heading7.magnitude;
+                    var direction7 = heading7 / distance7;
+                    float step = Speed * Time.deltaTime;
+                    transform.position = Vector3.MoveTowards(transform.position, loc7.transform.position, step);
+                    if (transform.position == loc7.transform.position) { doneMoving = true; locPointNum = 1f; State = 3; StateChanged = true; }
+                }
+            }
+            #endregion
+
+            #region STATE 3 CIRCLE ATTACK
+
+            if(State == 3) // the CIRCLE ATTACKING STATE
+            {
+                if (StateChanged == true)
+                {
+                    bullets = 80f;
+                    pattern = Random.Range(1, 9);
+                    startAttacking = 1.3f;
+                    attacking = 2.5f;
+                    StateChanged = false;
+                }
+                if (startAttacking > 0) { startAttacking -= Time.deltaTime; }
+                if (attacking > 0) { attacking -= Time.deltaTime;  }
+                _anim.SetBool("attacking", true);
+                if (startAttacking <= 0) { spawnBullets = true; bulletsSet = false; }
+                if(attacking <= 0) { State = 1; _anim.SetBool("attacking", false); stateChangeCD = 1f; }
+            }
+
+            #endregion
+
+            #region STATE 4 MOVING BACKWARDS
+
+            if (State == 4)  // MOVING STATE Same as state 2, but backwards.. 
+            {
+                _anim.enabled = true;
+                if (StateChanged == true) // this happens at the start of stage 4 every time state is changed
+                {
+                    bullets = 300f;
+                    pattern = Random.Range(1, 9);
+                    doneMoving = false;
+                    StateChanged = false;
+                    locPointNum = 6f;
+                }
+                if (locPointNum == 1f) // Move Towards Point Number 1
+                {
+                    var heading1 = loc1.transform.position - transform.position;
+                    var distance1 = heading1.magnitude;
+                    var direction1 = heading1 / distance1;
+                    float step = Speed * Time.deltaTime;
+                    transform.position = Vector3.MoveTowards(transform.position, loc1.transform.position, step);
+                    if (transform.position == loc1.transform.position) { locPointNum = 7f; }
+                }
+                if (locPointNum == 2f) // Move Towards Point Number 2
+                {
+                    var heading2 = loc2.transform.position - transform.position;
+                    var distance2 = heading2.magnitude;
+                    var direction2 = heading2 / distance2;
+                    float step = Speed * Time.deltaTime;
+                    transform.position = Vector3.MoveTowards(transform.position, loc2.transform.position, step);
+                    if (transform.position == loc2.transform.position) { locPointNum = 1f; }
+                }
+                if (locPointNum == 3f) // Move Towards Point Number 3
+                {
+                    var heading3 = loc3.transform.position - transform.position;
+                    var distance3 = heading3.magnitude;
+                    var direction3 = heading3 / distance3;
+                    float step = Speed * Time.deltaTime;
+                    transform.position = Vector3.MoveTowards(transform.position, loc3.transform.position, step);
+                    if (transform.position == loc3.transform.position) { locPointNum = 2f; }
+                    spawnBullets = true;
+                }
+                if (locPointNum == 4f) // Move Towards Point Number 4
+                {
+                    var heading4 = loc4.transform.position - transform.position;
+                    var distance4 = heading4.magnitude;
+                    var direction4 = heading4 / distance4;
+                    float step = Speed * Time.deltaTime;
+                    transform.position = Vector3.MoveTowards(transform.position, loc4.transform.position, step);
+                    if (transform.position == loc4.transform.position) { locPointNum = 3f; }
+                }
+                if (locPointNum == 5f) // Move Towards Point Number 5
+                {
+                    var heading5 = loc5.transform.position - transform.position;
+                    var distance5 = heading5.magnitude;
+                    var direction5 = heading5 / distance5;
+                    float step = Speed * Time.deltaTime;
+                    transform.position = Vector3.MoveTowards(transform.position, loc5.transform.position, step);
+                    if (transform.position == loc5.transform.position) { locPointNum = 4f; }
+                }
+                if (locPointNum == 6f) // Move Towards Point Number 6
+                {
+                    var heading6 = loc6.transform.position - transform.position;
+                    var distance6 = heading6.magnitude;
+                    var direction6 = heading6 / distance6;
+                    float step = Speed * Time.deltaTime;
+                    transform.position = Vector3.MoveTowards(transform.position, loc6.transform.position, step);
+                    if (transform.position == loc6.transform.position) { locPointNum = 5f; }
+                }
+                if (locPointNum == 7f) // Move Back to Location Number 7
+                {
+                    var heading7 = loc7.transform.position - transform.position;
+                    var distance7 = heading7.magnitude;
+                    var direction7 = heading7 / distance7;
+                    float step = Speed * Time.deltaTime;
+                    transform.position = Vector3.MoveTowards(transform.position, loc7.transform.position, step);
+                    if (transform.position == loc7.transform.position) { doneMoving = true; locPointNum = 6f; State = 3; StateChanged = true; }
+                }
+            }
+            #endregion
+
+        }
+    }
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if (paused == false)
+        {
+            if (State != 3)
+            {
+                if (other.tag == "playerProjectile")
+                {
+                    Hp -= 1.5f * dmgRed;
+                    Destroy(other.gameObject);
+                    redColor = 0.1f;
+                }
+                if (other.tag == "playerProjectilemgun")
+                {
+                    Hp -= 0.3f * dmgRed;
+                    Destroy(other.gameObject);
+                    redColor = 0.1f;
+                }
+                if (other.tag == "SwordHitbox" && canTakeMeleeDamage == true)
+                {
+                    Hp -= 6f * dmgRed;
+                    meleeDamageCD = 0.5f;
+                    redColor = 0.1f;
+                }
+            }
+            if (State == 3)
+            {
+                if (other.tag == "playerProjectile")
+                {
+                    Hp -= 1.5f;
+                    Destroy(other.gameObject);
+                    redColor = 0.1f;
+                }
+                if (other.tag == "playerProjectilemgun")
+                {
+                    Hp -= 0.3f;
+                    Destroy(other.gameObject);
+                    redColor = 0.1f;
+                }
+                if (other.tag == "SwordHitbox" && canTakeMeleeDamage == true)
+                {
+                    Hp -= 6f;
+                    meleeDamageCD = 0.5f;
+                    redColor = 0.1f;
+                }
+            }
+        }
+    }
+    void Shoot()
+    {
+        if (paused == false)
+        {
+            
+                Vector2 bValue = new Vector2(Mathf.Pow(bValueX, 2), Mathf.Pow(bValueX, 2));
+                Vector2 myPos = new Vector2(transform.position.x, transform.position.y);
+                Vector2 direction = myPos + bValue;
+                direction.Normalize();
+                GameObject projectile = (GameObject)Instantiate(bullet, transform.position, transform.rotation);
+                projectile.GetComponent<Rigidbody2D>().velocity = new Vector2(Mathf.Cos(bullets * pattern), Mathf.Sin(bullets * pattern)) * bulletSpeed;
+                projectile.GetComponent<SpriteRenderer>().sortingOrder = GetComponent<SpriteRenderer>().sortingOrder + 2;
+                BulletSpawnLoc.GetComponent<Rigidbody2D>().rotation += 12;
+                bullets--;
+        }
+    }
+}
